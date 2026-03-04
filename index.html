@@ -1,0 +1,48 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body { font-family: sans-serif; background: #f6f3ee; display: flex; justify-content: center; align-items: center; height: 100vh; }
+    .card { background: white; padding: 20px; border-radius: 16px; width: 260px; box-shadow: 0 8px 20px rgba(0,0,0,0.08); text-align: center; }
+    button { padding: 10px 20px; border-radius: 10px; border: none; background: #8b5e3c; color: white; cursor: pointer; margin-top: 12px; }
+    .progress { height: 8px; background: #eee; border-radius: 10px; margin-top: 12px; overflow: hidden; }
+    .progress-bar { height: 100%; width: 0%; background: #8b5e3c; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h3>☕ Coffee Streak</h3>
+    <div id="streak">0</div>
+    <div class="progress">
+      <div class="progress-bar" id="bar"></div>
+    </div>
+    <button onclick="addCoffee()">Log Coffee</button>
+  </div>
+
+<script>
+const SUPABASE_URL = "PASTE_YOUR_PROJECT_URL";
+const SUPABASE_ANON_KEY = "PASTE_YOUR_PUBLISHABLE_KEY";
+
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+async function loadData() {
+  const { data } = await supabase.from('cafe_stats').select('*').limit(1);
+  if (data && data.length > 0) {
+    document.getElementById('streak').innerText = data[0].streak;
+    document.getElementById('bar').style.width = (data[0].streak % 7) * 14 + "%";
+  }
+}
+
+async function addCoffee() {
+  const { data } = await supabase.from('cafe_stats').select('*').limit(1);
+  let streak = data[0].streak + 1;
+
+  await supabase.from('cafe_stats').update({ streak: streak }).eq('id', data[0].id);
+  loadData();
+}
+
+loadData();
+</script>
+</body>
+</html>
