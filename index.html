@@ -1,132 +1,142 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
+    <meta charset="UTF-8">
     <title>Café Coffee Streak</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { font-family: 'Georgia', serif; background: #f6f3ee; display: flex; justify-content: center; align-items: center; height: 100vh; color: #4b3b2a; }
-        .card { background: white; padding: 24px; border-radius: 16px; width: 320px; box-shadow: 0 8px 20px rgba(0,0,0,0.08); text-align: center; }
-        h3 { font-size: 1.3rem; margin-bottom: 12px; }
-        .description { font-style: italic; font-size: 0.9rem; margin-bottom: 12px; }
-        button { padding: 12px 20px; border-radius: 10px; border: none; background: #8b5e3c; color: white; cursor: pointer; font-weight: bold; font-size: 1rem; margin-bottom: 12px; }
-        button[disabled] { opacity: 0.6; cursor: default; }
-        .progress { font-family: monospace; font-size: 1.1rem; margin-bottom: 12px; }
-        hr { border: 0.5px solid #ddd; margin: 12px 0; }
+        body {
+            font-family: 'Georgia', serif;
+            background: #f6f3ee;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: #4b3b2a;
+        }
+        .card {
+            background: white;
+            padding: 24px;
+            border-radius: 16px;
+            width: 300px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+            text-align: center;
+        }
+        h3 {
+            font-size: 1.3rem;
+            margin-bottom: 12px;
+        }
+        .description {
+            font-style: italic;
+            font-size: 0.9rem;
+            margin-bottom: 16px;
+        }
+        button {
+            padding: 12px 20px;
+            border-radius: 10px;
+            border: none;
+            background: #8b5e3c;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1rem;
+            margin-bottom: 12px;
+        }
+        .progress {
+            height: 12px;
+            background: #eee;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: #8b5e3c;
+            transition: width 0.3s ease;
+        }
+        .streak-text {
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        hr {
+            border: 0.5px solid #ddd;
+            margin: 12px 0;
+        }
     </style>
 </head>
 <body>
     <div class="card">
         <h3>☕ The Café is Open</h3>
         <div class="description">𝒯𝒽𝑒 𝒶𝒾𝓇 𝓈𝓂𝑒𝓁𝓁𝓈 𝓁𝒾𝓀𝑒 𝓋𝒶𝓃𝒾𝓁𝓁𝒶 𝒶𝓃𝒹 𝒸𝑒𝒹𝒶𝓇𝓌𝑜𝑜𝒹.</div>
+        
+        <div class="streak-text">🌿 Current streak: <span id="streak">0</span> days</div>
+        <div class="progress">
+            <div class="progress-bar" id="bar"></div>
+        </div>
 
-        <div class="description">🌿 Current streak: <span id="streak">0</span> days</div>
-        <div class="progress" id="bar">☕ Progress: ░░░░░░░</div>
-
-        <button id="brewBtn" onclick="brewCoffee()">☕ Brew Today's Coffee</button>
+        <button onclick="brewCoffee()">☕ Brew Today's Coffee</button>
         <hr>
         <div class="description">𝘉𝘳𝘦𝘸 𝘵𝘰𝘥𝘢𝘺’𝘴 𝘤𝘶𝘱 𝘣𝘦𝘧𝘰𝘳𝘦 𝘵𝘩𝘦 𝘭𝘪𝘨𝘩𝘵 𝘧𝘢𝘥𝘦𝘴.</div>
     </div>
 
-<script>
-    const SUPABASE_URL = "https://obqytmrdesfiajdstymp.supabase.co";
-    const SUPABASE_ANON_KEY = "sb_publishable_F5OFgkuHRXo17oA3VRvnsQ_YfCeJ_Dv";
+    <script>
+        // ← Your Supabase credentials
+        const SUPABASE_URL = "https://obqytmrdesfiajdstymp.supabase.co";
+        const SUPABASE_ANON_KEY = "sb_publishable_F5OFgkuHRXo17oA3VRvnsQ_YfCeJ_Dv";
 
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    const brewBtn = document.getElementById('brewBtn');
+        // ← Only declare once
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    function todayISO() {
-        return new Date().toISOString().slice(0,10);
-    }
-    function yesterdayISO() {
-        const d = new Date();
-        d.setDate(d.getDate() - 1);
-        return d.toISOString().slice(0,10);
-    }
+        async function loadData() {
+            let { data, error } = await supabase.from('cafe_stats').select('*').limit(1);
 
-    function updateProgressBar(streak) {
-        // show up to 7 blocks; show full bar if streak is multiple of 7 (>0)
-        let blocks = 0;
-        if (streak > 0) blocks = (streak % 7 === 0) ? 7 : (streak % 7);
-        const bar = "█".repeat(blocks) + "░".repeat(7 - blocks);
-        document.getElementById("bar").innerText = `☕ Progress: ${bar}`;
-        document.getElementById("streak").innerText = streak;
-    }
-
-    async function ensureRowExists() {
-        const { data, error } = await supabase.from('cafe_stats').select('*').limit(1);
-        if (error) {
-            console.error("Error fetching streak:", error);
-            return null;
-        }
-        if (!data || data.length === 0) {
-            const { error: insertErr } = await supabase.from('cafe_stats').insert([{ streak: 0, last_brew_date: null }]);
-            if (insertErr) console.error("Error creating initial row:", insertErr);
-            // fetch again
-            const { data: d2, error: e2 } = await supabase.from('cafe_stats').select('*').limit(1);
-            if (e2) { console.error(e2); return null; }
-            return d2 && d2[0] ? d2[0] : null;
-        }
-        return data[0];
-    }
-
-    async function loadData() {
-        const row = await ensureRowExists();
-        if (!row) return;
-        updateProgressBar(row.streak || 0);
-        // disable button if already brewed today
-        if (row.last_brew_date === todayISO()) {
-            brewBtn.disabled = true;
-            brewBtn.innerText = "☕ Brewed Today";
-        } else {
-            brewBtn.disabled = false;
-            brewBtn.innerText = "☕ Brew Today's Coffee";
-        }
-    }
-
-    async function brewCoffee() {
-        brewBtn.disabled = true; // optimistic disable to avoid rapid clicks
-        const { data, error } = await supabase.from('cafe_stats').select('*').limit(1);
-        if (error) {
-            console.error("Error fetching streak:", error);
-            brewBtn.disabled = false;
-            return;
-        }
-        let row = data && data[0];
-        if (!row) {
-            // create with 1
-            const { error: insertErr } = await supabase.from('cafe_stats').insert([{ streak: 1, last_brew_date: todayISO() }]);
-            if (insertErr) {
-                console.error(insertErr);
-                brewBtn.disabled = false;
+            if (error) {
+                console.error('Error fetching streak:', error);
                 return;
             }
-            updateProgressBar(1);
-            brewBtn.innerText = "☕ Brewed Today";
-            return;
+
+            // If no row exists, create one
+            if (!data || data.length === 0) {
+                const { data: newData, error: insertError } = await supabase.from('cafe_stats').insert([{ streak: 0 }]).select();
+                if (insertError) {
+                    console.error('Error creating initial row:', insertError);
+                    return;
+                }
+                data = newData;
+            }
+
+            const streakValue = data[0].streak;
+            document.getElementById('streak').innerText = streakValue;
+            document.getElementById('bar').style.width = (streakValue % 7) * 14 + "%";
         }
 
-        if (row.last_brew_date === todayISO()) {
-            // already brewed today
-            brewBtn.disabled = true;
-            brewBtn.innerText = "☕ Brewed Today";
-            return;
+        async function brewCoffee() {
+            let { data, error } = await supabase.from('cafe_stats').select('*').limit(1);
+            if (error) {
+                console.error('Error fetching streak:', error);
+                return;
+            }
+
+            // Safety check
+            if (!data || data.length === 0) {
+                console.warn('No row found — creating one.');
+                const { data: newData, error: insertError } = await supabase.from('cafe_stats').insert([{ streak: 1 }]).select();
+                if (insertError) {
+                    console.error('Error creating row:', insertError);
+                    return;
+                }
+                loadData();
+                return;
+            }
+
+            const streak = data[0].streak + 1;
+            await supabase.from('cafe_stats').update({ streak }).eq('id', data[0].id);
+            loadData();
         }
 
-        // if brewed yesterday -> increment, else reset to 1
-        const newStreak = (row.last_brew_date === yesterdayISO()) ? (row.streak || 0) + 1 : 1;
-        const { error: updateErr } = await supabase.from('cafe_stats').update({ streak: newStreak, last_brew_date: todayISO() }).eq('id', row.id);
-        if (updateErr) {
-            console.error("Error updating streak:", updateErr);
-            brewBtn.disabled = false;
-            return;
-        }
-
-        updateProgressBar(newStreak);
-        brewBtn.innerText = "☕ Brewed Today";
-    }
-
-    loadData();
-</script>
+        // Load data on page load
+        loadData();
+    </script>
 </body>
 </html>
